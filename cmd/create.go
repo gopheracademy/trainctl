@@ -62,6 +62,8 @@ var createCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(createCmd)
 	createCmd.PersistentFlags().String("name", "", "Module name")
+	createCmd.PersistentFlags().String("topic", "Go", "Module Topic {Go,Kubernetes}")
+	createCmd.PersistentFlags().String("level", "beginner", "{beginner,intermediate,advanced,expert}")
 	createCmd.PersistentFlags().String("description", "Module Description", "Module description")
 
 }
