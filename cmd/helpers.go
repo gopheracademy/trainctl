@@ -15,16 +15,18 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/user"
 	"path/filepath"
 	"strings"
 	"text/template"
 
+	"github.com/gophertrain/trainctl/templates"
 	"github.com/pkg/errors"
-	"github.com/spf13/cobra"
 )
 
 // var BaseDir = ""
@@ -42,6 +44,8 @@ var testWd = ""
 var cmdDirs = []string{"cmd", "cmds", "command", "commands"}
 
 var subdirs = []string{"includes", "images"}
+
+var outputdirs = []string{"slides", "src"}
 
 func init() {
 	funcMap = template.FuncMap{
@@ -324,6 +328,21 @@ func homeDir() (string, error) {
 	}
 	return u.HomeDir, nil
 }
-func getPath(cmd *cobra.Command, add string) string {
-	return filepath.Join(cmd.Flag("name").Value.String(), add)
+func getPath(name, add string) string {
+	return filepath.Join(name, add)
+}
+
+func getManifest(module string) (templates.Module, error) {
+
+	var m templates.Module
+	name := module + ".json"
+	path := getPath(module, "")
+
+	file, err := ioutil.ReadFile(filepath.Join(path, name))
+	if err != nil {
+		return m, errors.Wrap(err, "reading manifest")
+	}
+
+	err = json.Unmarshal(file, &m)
+	return m, err
 }

@@ -38,7 +38,7 @@ var createCmd = &cobra.Command{
 		}
 		module := templates.NewModule(cmd,
 			cmd.Flag("description").Value.String(),
-			getSrcPath(),
+			guessImportPath(),
 		)
 		err := createSubdirectories(cmd)
 		if err != nil {
@@ -70,14 +70,14 @@ func init() {
 
 func createSlide(cmd *cobra.Command, module templates.Module) error {
 	name := cmd.Flag("name").Value.String() + ".slide"
-	path := getPath(cmd, "")
+	path := getPath(ProjectPath(), cmd.Flag("name").Value.String())
 
 	return writeTemplateToFile(path, name, templates.Slide, module)
 }
 
 func createManifest(cmd *cobra.Command, module templates.Module) error {
 	name := cmd.Flag("name").Value.String() + ".json"
-	path := getPath(cmd, "")
+	path := getPath(ProjectPath(), cmd.Flag("name").Value.String())
 
 	js, err := json.Marshal(module)
 	if err != nil {
@@ -103,7 +103,7 @@ func createSubdirectories(cmd *cobra.Command) error {
 		return errors.Wrap(err, "making module src directory")
 	}
 	for _, dir := range subdirs {
-		path := getPath(cmd, dir)
+		path := getPath(cmd.Flag("name").Value.String(), dir)
 		err := os.MkdirAll(path, 0755)
 		if err != nil {
 			return errors.Wrap(err, "making module slide directories")

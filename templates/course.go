@@ -1,16 +1,27 @@
 package templates
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+)
 
 type Course struct {
-	Name              string   `json:"name"`
-	Instructor        string   `json:"instructor"`
-	InstructorEmail   string   `json:"instructor_email"`
-	InstructorTwitter string   `json:"instructor_twitter"`
-	Modules           []Module `json:"modules"`
+	Name              string    `json:"name"`
+	Instructor        string    `json:"instructor"`
+	InstructorEmail   string    `json:"instructor_email"`
+	InstructorTwitter string    `json:"instructor_twitter"`
+	OutputDirectory   string    `json:"output_directory"`
+	Modules           []*Module `json:"modules"`
 }
 
 func NewCourse(cmd *cobra.Command) Course {
+	return Course{
+		Name:              cmd.Flag("course").Value.String(),
+		Instructor:        viper.GetString("author"),
+		InstructorEmail:   viper.GetString("email"),
+		InstructorTwitter: viper.GetString("twitter"),
+		OutputDirectory:   cmd.Flag("output").Value.String(),
+		Modules:           make([]*Module, 0),
+	}
 
-	return Course{}
 }

@@ -15,13 +15,8 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"path/filepath"
 
-	"github.com/gophertrain/trainctl/templates"
-	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +31,7 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		module, err := getManifest(cmd)
+		module, err := getManifest(cmd.Flag("name").Value.String())
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -49,19 +44,4 @@ func init() {
 	RootCmd.AddCommand(infoCmd)
 
 	infoCmd.PersistentFlags().String("name", "", "Module name")
-}
-
-func getManifest(cmd *cobra.Command) (templates.Module, error) {
-
-	var m templates.Module
-	name := cmd.Flag("name").Value.String() + ".json"
-	path := getPath(cmd, "")
-
-	file, err := ioutil.ReadFile(filepath.Join(path, name))
-	if err != nil {
-		return m, errors.Wrap(err, "reading manifest")
-	}
-
-	err = json.Unmarshal(file, &m)
-	return m, err
 }

@@ -66,7 +66,8 @@ func removeSubdirectories(cmd *cobra.Command) error {
 	if err != nil {
 		return errors.Wrap(err, "removing module src directory")
 	}
-	path = getPath(cmd, "")
+	name := cmd.Flag("name").Value.String()
+	path = getPath(name, "")
 	err = os.RemoveAll(path)
 	if err != nil {
 		return errors.Wrap(err, "removing module directory")

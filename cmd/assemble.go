@@ -16,7 +16,11 @@ package cmd
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
+	"github.com/gophertrain/trainctl/templates"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
 
@@ -24,29 +28,106 @@ import (
 var assembleCmd = &cobra.Command{
 	Use:   "assemble",
 	Short: "Assemble modules into a course",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("assemble called")
+		if err := checkParams(cmd); err != nil {
+			fmt.Println(err)
+			return
+		}
+		course := templates.NewCourse(cmd)
+		modules, err := cmd.PersistentFlags().GetStringSlice("modules")
+		if err != nil {
+			fmt.Println("Error parsing modules.")
+			return
+		}
+		var manifests []*templates.Module
+		for _, m := range modules {
+			man, err := getManifest(m)
+			if err != nil {
+				fmt.Println("Error getting module manifest.", err)
+				return
+			}
+			manifests = append(manifests, &man)
+		}
+		course.Modules = manifests
+		err = assembleCourse(course)
+		if err != nil {
+			fmt.Println("Error assembling course", err)
+			return
+		}
 	},
+}
+
+func assembleCourse(course templates.Course) error {
+
+	err := os.MkdirAll(course.OutputDirectory, 0755)
+	if err != nil {
+		return errors.Wrap(err, "create output directory")
+	}
+	for _, dir := range outputdirs {
+		path := filepath.Join(course.OutputDirectory, dir)
+		err := os.MkdirAll(path, 0755)
+		if err != nil {
+			return errors.Wrap(err, "making output directories")
+		}
+	}
+	for i, module := range course.Modules {
+		moduleDir := filepath.Join(ProjectPath(), module.ShortName)
+		newModuleDir := filepath.Join(course.OutputDirectory, "slides", module.NumberedPath(i+1))
+		err := os.Symlink(moduleDir, newModuleDir)
+		if err != nil {
+			return errors.Wrap(err, "symlink module directory")
+		}
+
+		srcDir := filepath.Join(ProjectPath(), "src", module.ShortName)
+		newsrcDir := filepath.Join(course.OutputDirectory, "src", module.ShortName)
+		err = os.Symlink(srcDir, newsrcDir)
+		if err != nil {
+			return errors.Wrap(err, "symlink source directory")
+		}
+	}
+
+	return err
 }
 
 func init() {
 	RootCmd.AddCommand(assembleCmd)
 
-	// Here you will define your flags and configuration settings.
+	assembleCmd.PersistentFlags().StringSliceP("modules", "m", []string{}, "List of modules to assemble, comma separated 'module1,module2'")
+	assembleCmd.PersistentFlags().StringP("course", "c", "", "Course Name e.g: 'Go for the Future'")
+	assembleCmd.PersistentFlags().StringP("output", "o", "", "Output Directory e.g. /Users/you/goforthefuture")
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// assembleCmd.PersistentFlags().String("foo", "", "A help for foo")
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// assembleCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func checkParams(cmd *cobra.Command) error {
+	modules, err := cmd.PersistentFlags().GetStringSlice("modules")
+	if err != nil {
+		return errors.Wrap(err, "Check parameters: modules")
+	}
+	if len(modules) < 1 {
+		return errors.New("At least one module is required")
+	}
 
+	course, err := cmd.PersistentFlags().GetString("course")
+	if err != nil {
+		return errors.Wrap(err, "Check parameters: course")
+	}
+	if course == "" {
+		return errors.New("Course name is required")
+	}
+	output, err := cmd.PersistentFlags().GetString("output")
+	if err != nil {
+		return errors.Wrap(err, "Check parameters: output")
+	}
+	if output == "" {
+		return errors.New("Output Directory is required")
+	}
+	b, err := dirExists(output)
+	if err != nil {
+		return errors.Wrap(err, "Check output directory")
+	}
+	if b {
+		return errors.New("Output directory exists. Cowardly refusing to overwrite.")
+	}
+	return nil
 }

@@ -1,6 +1,8 @@
 package templates
 
 import (
+	"strconv"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -37,6 +39,14 @@ func NewModule(cmd *cobra.Command, description string, importPath string) Module
 		SourceRepository: importPath,
 	}
 
+}
+
+func (m Module) NumberedPath(i int) string {
+	s := strconv.Itoa(i)
+	if len(s) < 2 {
+		return "0" + s + "-" + m.ShortName
+	}
+	return s + "-" + m.ShortName
 }
 
 func (m Module) String() string {
