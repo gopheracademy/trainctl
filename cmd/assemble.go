@@ -85,8 +85,21 @@ func assembleCourse(course templates.Course) error {
 		if err != nil {
 			return errors.Wrap(err, "symlink source directory")
 		}
-	}
 
+	}
+	// only once
+	err = writeStringToFile(course.OutputDirectory, "Vagrantfile", templates.Vagrantfile)
+	if err != nil {
+		return errors.Wrap(err, "Create Vagrantfile")
+	}
+	err = writeStringToFile(course.OutputDirectory, "bootstrap-vagrant.sh", templates.Bootstrap)
+	if err != nil {
+		return errors.Wrap(err, "Create bootstrap script")
+	}
+	err = os.Chmod(filepath.Join(course.OutputDirectory, "bootstrap-vagrant.sh"), 0755)
+	if err != nil {
+		return errors.Wrap(err, "make bootstrap script execuatable")
+	}
 	return err
 }
 
