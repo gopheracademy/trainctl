@@ -29,7 +29,7 @@ import (
 var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "Search modules by metadata",
-	Long:  ``,
+	Long:  `Search performs a search of the repository's modules using a logical OR of all the supplied search conditions.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := checkSearchParams(cmd)
 		if err != nil {
@@ -63,6 +63,11 @@ func checkSearchParams(cmd *cobra.Command) error {
 	if err != nil {
 		return errors.Wrap(err, "Check parameters: level")
 	}
+
+	description, err := cmd.PersistentFlags().GetString("description")
+	if err != nil {
+		return errors.Wrap(err, "Check parameters: description")
+	}
 	var found bool
 	if name != "" {
 		found = true
@@ -71,6 +76,9 @@ func checkSearchParams(cmd *cobra.Command) error {
 		found = true
 	}
 
+	if description != "" {
+		found = true
+	}
 	if level != "" {
 		found = true
 	}
@@ -110,6 +118,10 @@ func search(cmd *cobra.Command) ([]templates.Module, error) {
 		return results, errors.Wrap(err, "Check parameters: topic")
 	}
 
+	description, err := cmd.PersistentFlags().GetString("description")
+	if err != nil {
+		return results, errors.Wrap(err, "Check parameters: description")
+	}
 	level, err := cmd.PersistentFlags().GetString("level")
 	if err != nil {
 		return results, errors.Wrap(err, "Check parameters: level")
@@ -144,6 +156,11 @@ func search(cmd *cobra.Command) ([]templates.Module, error) {
 				}
 			}
 
+			if description != "" {
+				if strings.Contains(module.Description, description) {
+					hit = true
+				}
+			}
 			if hit {
 				results = append(results, module)
 			}
