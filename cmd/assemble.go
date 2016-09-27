@@ -1,20 +1,7 @@
-// Copyright © 2016 Brian Ketelsen <me@brianketelsen.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,6 +9,7 @@ import (
 	"github.com/gophertrain/trainctl/templates"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // assembleCmd represents the assemble command
@@ -50,7 +38,7 @@ var assembleCmd = &cobra.Command{
 			manifests = append(manifests, &man)
 		}
 		course.Modules = manifests
-		err = assembleCourse(course)
+		err = assembleCourse(cmd, course)
 		if err != nil {
 			fmt.Println("Error assembling course", err)
 			return
@@ -58,7 +46,7 @@ var assembleCmd = &cobra.Command{
 	},
 }
 
-func assembleCourse(course templates.Course) error {
+func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 
 	err := os.MkdirAll(course.OutputDirectory, 0755)
 	if err != nil {
@@ -73,12 +61,22 @@ func assembleCourse(course templates.Course) error {
 	}
 	for i, module := range course.Modules {
 		moduleDir := filepath.Join(ProjectPath(), module.ShortName)
-		newModuleDir := filepath.Join(course.OutputDirectory, "slides", module.NumberedPath(i+1))
+		newModuleDir := filepath.Join(course.OutputDirectory, module.ShortName)
 		err := os.Symlink(moduleDir, newModuleDir)
 		if err != nil {
 			return errors.Wrap(err, "symlink module directory")
 		}
 
+		// slide
+		slide := filepath.Join(ProjectPath(), module.ShortName+".slide")
+		newSlide := filepath.Join(course.OutputDirectory, module.NumberedPath(i+1)+".slide")
+		err = os.Symlink(slide, newSlide)
+		if err != nil {
+			return errors.Wrap(err, "symlink slide")
+		}
+		// manifest
+
+		// source code
 		srcDir := filepath.Join(ProjectPath(), "src", module.ShortName)
 		newsrcDir := filepath.Join(course.OutputDirectory, "src", module.ShortName)
 		err = os.Symlink(srcDir, newsrcDir)
@@ -100,16 +98,20 @@ func assembleCourse(course templates.Course) error {
 	if err != nil {
 		return errors.Wrap(err, "make bootstrap script execuatable")
 	}
+
+	err = createCourseManifest(cmd, course)
+	if err != nil {
+		return errors.Wrap(err, "create course manifest")
+	}
 	return err
 }
 
 func init() {
 	RootCmd.AddCommand(assembleCmd)
 
-	assembleCmd.PersistentFlags().StringSliceP("modules", "m", []string{}, "List of modules to assemble, comma separated 'module1,module2'")
-	assembleCmd.PersistentFlags().StringP("course", "c", "", "Course Name e.g: 'Go for the Future'")
-	assembleCmd.PersistentFlags().StringP("output", "o", "", "Output Directory e.g. /Users/you/goforthefuture")
-
+	assembleCmd.PersistentFlags().StringSlice("modules", []string{}, "List of modules to assemble, comma separated 'module1,module2'")
+	assembleCmd.PersistentFlags().String("course", "", "Course Name e.g: 'Go for the Future'")
+	assembleCmd.PersistentFlags().String("shortname", "", "Course Short Name e.g: 'goforfuture'")
 }
 
 func checkParams(cmd *cobra.Command) error {
@@ -128,14 +130,17 @@ func checkParams(cmd *cobra.Command) error {
 	if course == "" {
 		return errors.New("Course name is required")
 	}
-	output, err := cmd.PersistentFlags().GetString("output")
+
+	shortname, err := cmd.PersistentFlags().GetString("shortname")
 	if err != nil {
-		return errors.Wrap(err, "Check parameters: output")
+		return errors.Wrap(err, "Check parameters: shortname")
 	}
-	if output == "" {
-		return errors.New("Output Directory is required")
+	if shortname == "" {
+		return errors.New("Course shortname is required")
 	}
-	b, err := dirExists(output)
+	newModuleDir := filepath.Join(viper.GetString("coursedir"), shortname)
+
+	b, err := dirExists(newModuleDir)
 	if err != nil {
 		return errors.Wrap(err, "Check output directory")
 	}
@@ -143,4 +148,14 @@ func checkParams(cmd *cobra.Command) error {
 		return errors.New("Output directory exists. Cowardly refusing to overwrite.")
 	}
 	return nil
+}
+
+func createCourseManifest(cmd *cobra.Command, course templates.Course) error {
+	name := cmd.Flag("shortname").Value.String() + ".json"
+
+	js, err := json.Marshal(course)
+	if err != nil {
+		return errors.Wrap(err, "encoding course manifest")
+	}
+	return writeStringToFile(viper.GetString("coursedir"), name, string(js))
 }

@@ -9,4 +9,6 @@ type Conf struct {
 const Config = `twitter: {{.Twitter}}
 author: {{.Author}}
 email: {{.Email}}
+moduledir: {{.ModuleDir}}
+coursedir: {{.CourseDir}}
 `

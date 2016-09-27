@@ -1,17 +1,3 @@
-// Copyright © 2016 Brian Ketelsen <me@brianketelsen.com>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -38,7 +24,7 @@ var createCmd = &cobra.Command{
 		}
 		module := templates.NewModule(cmd,
 			cmd.Flag("description").Value.String(),
-			guessImportPath(),
+			ProjectPath(),
 		)
 		err := createSubdirectories(cmd)
 		if err != nil {
@@ -70,20 +56,18 @@ func init() {
 
 func createSlide(cmd *cobra.Command, module templates.Module) error {
 	name := cmd.Flag("name").Value.String() + ".slide"
-	path := getPath(ProjectPath(), cmd.Flag("name").Value.String())
 
-	return writeTemplateToFile(path, name, templates.Slide, module)
+	return writeTemplateToFile(ProjectPath(), name, templates.Slide, module)
 }
 
 func createManifest(cmd *cobra.Command, module templates.Module) error {
 	name := cmd.Flag("name").Value.String() + ".json"
-	path := getPath(ProjectPath(), cmd.Flag("name").Value.String())
 
 	js, err := json.Marshal(module)
 	if err != nil {
 		return errors.Wrap(err, "encoding module manifest")
 	}
-	return writeStringToFile(path, name, string(js))
+	return writeStringToFile(ProjectPath(), name, string(js))
 }
 
 func createSubdirectories(cmd *cobra.Command) error {
@@ -95,15 +79,20 @@ func createSubdirectories(cmd *cobra.Command) error {
 	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "exercises")
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making module src directory")
+		return errors.Wrap(err, "making module exercises directory")
 	}
 	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "solutions")
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making module src directory")
+		return errors.Wrap(err, "making module solutions directory")
+	}
+	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "demos")
+	err = os.MkdirAll(path, 0755)
+	if err != nil {
+		return errors.Wrap(err, "making module demos directory")
 	}
 	for _, dir := range subdirs {
-		path := getPath(cmd.Flag("name").Value.String(), dir)
+		path := filepath.Join(ProjectPath(), cmd.Flag("name").Value.String(), dir)
 		err := os.MkdirAll(path, 0755)
 		if err != nil {
 			return errors.Wrap(err, "making module slide directories")

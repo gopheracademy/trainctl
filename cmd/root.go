@@ -1,17 +1,3 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -55,13 +41,20 @@ func init() {
 	RootCmd.PersistentFlags().StringP("author", "a", "", "course or module author name")
 	RootCmd.PersistentFlags().StringP("email", "e", "", "course or module author email")
 	RootCmd.PersistentFlags().StringP("twitter", "t", "", "course or module author twitter handle")
+	RootCmd.PersistentFlags().StringP("moduledir", "m", "", "module location path")
+	RootCmd.PersistentFlags().StringP("coursedir", "c", "", "course location path")
 
 	viper.BindPFlag("author", RootCmd.PersistentFlags().Lookup("author"))
 	viper.BindPFlag("email", RootCmd.PersistentFlags().Lookup("email"))
 	viper.BindPFlag("twitter", RootCmd.PersistentFlags().Lookup("twitter"))
+	viper.BindPFlag("moduledir", RootCmd.PersistentFlags().Lookup("moduledir"))
+	viper.BindPFlag("coursedir", RootCmd.PersistentFlags().Lookup("coursedir"))
+
 	viper.SetDefault("author", "NAME HERE")
 	viper.SetDefault("email", "you@email.com")
 	viper.SetDefault("twitter", "@you")
+	viper.SetDefault("moduledir", "~/courses")
+	viper.SetDefault("coursedir", "~/modules")
 
 }
 
