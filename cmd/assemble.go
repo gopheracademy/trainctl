@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"os"
 	"path/filepath"
 
@@ -103,7 +104,67 @@ func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 	if err != nil {
 		return errors.Wrap(err, "create course manifest")
 	}
-	return err
+
+	readme := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "readme.tmpl")
+	rt, err := template.ParseFiles(readme)
+	if err != nil {
+		return errors.Wrap(err, "reading readme template")
+	}
+
+	rm, err := os.Create(filepath.Join(course.OutputDirectory, "README.md"))
+	if err != nil {
+		fmt.Println("create readme: ", err)
+		return err
+	}
+	defer rm.Close()
+	err = rt.Execute(rm, course)
+	if err != nil {
+		fmt.Print("execute course template: ", err)
+		return err
+	}
+
+	envT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "environment.tmpl")
+	et, err := template.ParseFiles(envT)
+	if err != nil {
+		return errors.Wrap(err, "reading environment template")
+	}
+
+	envf, err := os.Create(filepath.Join(course.OutputDirectory, "environment.sh"))
+	if err != nil {
+		fmt.Println("create environment.sh: ", err)
+		return err
+	}
+	defer envf.Close()
+	err = et.Execute(envf, nil)
+	if err != nil {
+		fmt.Print("execute environment template: ", err)
+		return err
+	}
+	err = os.Chmod(filepath.Join(course.OutputDirectory, "environment.sh"), 0755)
+	if err != nil {
+		fmt.Print("chmod environment template: ", err)
+		return err
+	}
+
+	enrcT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "envrc.tmpl")
+	envrct, err := template.ParseFiles(enrcT)
+	if err != nil {
+		return errors.Wrap(err, "reading envrc template")
+	}
+
+	envrcf, err := os.Create(filepath.Join(course.OutputDirectory, ".envrc"))
+	if err != nil {
+		fmt.Println("create .envrc: ", err)
+		return err
+	}
+	defer envrcf.Close()
+	err = envrct.Execute(envrcf, nil)
+	if err != nil {
+		fmt.Print("execute envrc template: ", err)
+		return err
+	}
+	return nil
+
 }
 
 func init() {
