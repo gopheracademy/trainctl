@@ -57,7 +57,7 @@ func createTheConfig(cmd *cobra.Command) error {
 		Author:    viper.GetString("author"),
 		Twitter:   viper.GetString("twitter"),
 		Email:     viper.GetString("email"),
-		ModuleDir: "/Users/me/github.com/me/modules",
+		TopicDir:  "/Users/me/src/github.com/me/topics",
 		CourseDir: "/Users/me/courses",
 	}
 	return writeTemplateToFile(path, name, templates.Config, conf)

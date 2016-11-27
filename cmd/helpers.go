@@ -63,7 +63,7 @@ func ProjectPath() string {
 		guessProjectPath()
 	}
 	*/
-	return viper.GetString("moduledir")
+	return viper.GetString("topicdir")
 }
 
 // wrapper of the os package so we can test better
@@ -321,17 +321,17 @@ func getPath(name, add string) string {
 	return filepath.Join(name, add)
 }
 
-func getModulePath(module string) string {
+func getTopicPath(topic string) string {
 
 	return ProjectPath()
 
 }
 
-func getManifest(module string) (templates.Module, error) {
+func getManifest(topic string) (templates.Topic, error) {
 
-	var m templates.Module
-	name := module + ".json"
-	path := getModulePath(module)
+	var m templates.Topic
+	name := topic + ".json"
+	path := getTopicPath(topic)
 
 	file, err := ioutil.ReadFile(filepath.Join(path, name))
 	if err != nil {
