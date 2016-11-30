@@ -14,8 +14,8 @@ import (
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "Search topics by metadata",
-	Long:  `Search performs a search of the repository's topics using a logical OR of all the supplied search conditions.`,
+	Short: "Search modules by metadata",
+	Long:  `Search performs a search of the repository's modules using a logical OR of all the supplied search conditions.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		err := checkSearchParams(cmd)
 		if err != nil {
@@ -36,9 +36,9 @@ var searchCmd = &cobra.Command{
 
 func checkSearchParams(cmd *cobra.Command) error {
 
-	shortname, err := cmd.PersistentFlags().GetString("shortname")
+	name, err := cmd.PersistentFlags().GetString("name")
 	if err != nil {
-		return errors.Wrap(err, "Check parameters: shortname")
+		return errors.Wrap(err, "Check parameters: name")
 	}
 	topic, err := cmd.PersistentFlags().GetString("topic")
 	if err != nil {
@@ -55,7 +55,7 @@ func checkSearchParams(cmd *cobra.Command) error {
 		return errors.Wrap(err, "Check parameters: description")
 	}
 	var found bool
-	if shortname != "" {
+	if name != "" {
 		found = true
 	}
 	if topic != "" {
@@ -70,21 +70,21 @@ func checkSearchParams(cmd *cobra.Command) error {
 	}
 	if !found {
 
-		return errors.New("At least one search parameter required: shortname, topic, level")
+		return errors.New("At least one search parameter required: name, topic, level")
 	}
 	return nil
 }
 
 func init() {
 	RootCmd.AddCommand(searchCmd)
-	searchCmd.PersistentFlags().String("shortname", "", "Topic shortname")
-	searchCmd.PersistentFlags().String("subject", "", "Topic subject {Go,Kubernetes}")
+	searchCmd.PersistentFlags().String("name", "", "Module name")
+	searchCmd.PersistentFlags().String("topic", "", "Module Topic {Go,Kubernetes}")
 	searchCmd.PersistentFlags().String("level", "", "{beginner,intermediate,advanced,expert}")
-	searchCmd.PersistentFlags().String("description", "", "Topic description")
+	searchCmd.PersistentFlags().String("description", "", "Module description")
 }
 
-func search(cmd *cobra.Command) ([]templates.Topic, error) {
-	var results []templates.Topic
+func search(cmd *cobra.Command) ([]templates.Module, error) {
+	var results []templates.Module
 
 	dir, err := os.Open(ProjectPath())
 	if err != nil {
@@ -95,11 +95,11 @@ func search(cmd *cobra.Command) ([]templates.Topic, error) {
 		return results, errors.Wrap(err, "list project directory")
 	}
 
-	shortname, err := cmd.PersistentFlags().GetString("shortname")
+	name, err := cmd.PersistentFlags().GetString("name")
 	if err != nil {
-		return results, errors.Wrap(err, "Check parameters: shortname")
+		return results, errors.Wrap(err, "Check parameters: name")
 	}
-	subject, err := cmd.PersistentFlags().GetString("subject")
+	topic, err := cmd.PersistentFlags().GetString("topic")
 	if err != nil {
 		return results, errors.Wrap(err, "Check parameters: topic")
 	}
@@ -121,34 +121,34 @@ func search(cmd *cobra.Command) ([]templates.Topic, error) {
 				continue
 			}
 
-			topic, err := getManifest(f.Name())
+			module, err := getManifest(f.Name())
 			if err != nil {
-				return results, errors.Wrap(err, "get topic")
+				return results, errors.Wrap(err, "get module")
 			}
-			if shortname != "" {
-				if strings.Contains(topic.ShortName, shortname) {
+			if name != "" {
+				if strings.Contains(module.ShortName, name) {
 					hit = true
 				}
 			}
 
-			if subject != "" {
-				if strings.Contains(topic.Subject, subject) {
+			if topic != "" {
+				if strings.Contains(module.Topic, topic) {
 					hit = true
 				}
 			}
 			if level != "" {
-				if strings.Contains(string(topic.Level), level) {
+				if strings.Contains(string(module.Level), level) {
 					hit = true
 				}
 			}
 
 			if description != "" {
-				if strings.Contains(topic.Description, description) {
+				if strings.Contains(module.Description, description) {
 					hit = true
 				}
 			}
 			if hit {
-				results = append(results, topic)
+				results = append(results, module)
 			}
 
 		}

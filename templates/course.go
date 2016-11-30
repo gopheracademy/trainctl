@@ -8,13 +8,13 @@ import (
 )
 
 type Course struct {
-	Name              string   `json:"name"`
-	ShortName         string   `json:"short_name"`
-	Instructor        string   `json:"instructor"`
-	InstructorEmail   string   `json:"instructor_email"`
-	InstructorTwitter string   `json:"instructor_twitter"`
-	OutputDirectory   string   `json:"output_directory"`
-	Topics            []*Topic `json:"topics"`
+	Name              string    `json:"name"`
+	ShortName         string    `json:"short_name"`
+	Instructor        string    `json:"instructor"`
+	InstructorEmail   string    `json:"instructor_email"`
+	InstructorTwitter string    `json:"instructor_twitter"`
+	OutputDirectory   string    `json:"output_directory"`
+	Modules           []*Module `json:"modules"`
 }
 
 func NewCourse(cmd *cobra.Command) Course {
@@ -25,7 +25,7 @@ func NewCourse(cmd *cobra.Command) Course {
 		InstructorEmail:   viper.GetString("email"),
 		InstructorTwitter: viper.GetString("twitter"),
 		OutputDirectory:   filepath.Join(viper.GetString("coursedir"), cmd.Flag("shortname").Value.String()),
-		Topics:            make([]*Topic, 0),
+		Modules:           make([]*Module, 0),
 	}
 
 }

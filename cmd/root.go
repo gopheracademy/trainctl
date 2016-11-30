@@ -38,23 +38,23 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.trainctl.yaml)")
 
-	RootCmd.PersistentFlags().StringP("author", "a", "", "course or topic author name")
-	RootCmd.PersistentFlags().StringP("email", "e", "", "course or topic author email")
-	RootCmd.PersistentFlags().StringP("twitter", "t", "", "course or topic author twitter handle")
-	RootCmd.PersistentFlags().StringP("topicdir", "m", "", "topic location path")
+	RootCmd.PersistentFlags().StringP("author", "a", "", "course or module author name")
+	RootCmd.PersistentFlags().StringP("email", "e", "", "course or module author email")
+	RootCmd.PersistentFlags().StringP("twitter", "t", "", "course or module author twitter handle")
+	RootCmd.PersistentFlags().StringP("moduledir", "m", "", "module location path")
 	RootCmd.PersistentFlags().StringP("coursedir", "c", "", "course location path")
 
 	viper.BindPFlag("author", RootCmd.PersistentFlags().Lookup("author"))
 	viper.BindPFlag("email", RootCmd.PersistentFlags().Lookup("email"))
 	viper.BindPFlag("twitter", RootCmd.PersistentFlags().Lookup("twitter"))
-	viper.BindPFlag("topicdir", RootCmd.PersistentFlags().Lookup("topicdir"))
+	viper.BindPFlag("moduledir", RootCmd.PersistentFlags().Lookup("moduledir"))
 	viper.BindPFlag("coursedir", RootCmd.PersistentFlags().Lookup("coursedir"))
 
 	viper.SetDefault("author", "NAME HERE")
 	viper.SetDefault("email", "you@email.com")
 	viper.SetDefault("twitter", "you")
-	viper.SetDefault("topicdir", "~/courses")
-	viper.SetDefault("coursedir", "~/topics")
+	viper.SetDefault("moduledir", "~/courses")
+	viper.SetDefault("coursedir", "~/modules")
 
 }
 

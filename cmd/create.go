@@ -14,15 +14,15 @@ import (
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "Create a new topic skeleton",
+	Short: "Create a new module skeleton",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if cmd.Flag("name").Value.String() == "" {
-			fmt.Println("missing required argument: --name [topic name]")
+			fmt.Println("missing required argument: --name [module name]")
 			return
 		}
-		topic := templates.NewTopic(cmd,
+		module := templates.NewModule(cmd,
 			cmd.Flag("description").Value.String(),
 			ProjectPath(),
 		)
@@ -31,13 +31,13 @@ var createCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		createSlide(cmd, topic)
+		createSlide(cmd, module)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		createManifest(cmd, topic)
+		createManifest(cmd, module)
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -47,56 +47,55 @@ var createCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(createCmd)
-	createCmd.PersistentFlags().String("shortname", "", "Topic short name")
-	createCmd.PersistentFlags().String("name", "", "Topic name")
-	createCmd.PersistentFlags().String("subject", "Go", "Subject {Go,Kubernetes}")
+	createCmd.PersistentFlags().String("name", "", "Module name")
+	createCmd.PersistentFlags().String("topic", "Go", "Module Topic {Go,Kubernetes}")
 	createCmd.PersistentFlags().String("level", "beginner", "{beginner,intermediate,advanced,expert}")
-	createCmd.PersistentFlags().String("description", "Topic Description", "Topic description")
+	createCmd.PersistentFlags().String("description", "Module Description", "Module description")
 
 }
 
-func createSlide(cmd *cobra.Command, topic templates.Topic) error {
-	name := cmd.Flag("shortname").Value.String() + ".slide"
+func createSlide(cmd *cobra.Command, module templates.Module) error {
+	name := cmd.Flag("name").Value.String() + ".slide"
 
-	return writeTemplateToFile(ProjectPath(), name, templates.Slide, topic)
+	return writeTemplateToFile(ProjectPath(), name, templates.Slide, module)
 }
 
-func createManifest(cmd *cobra.Command, topic templates.Topic) error {
-	name := cmd.Flag("shortname").Value.String() + ".json"
+func createManifest(cmd *cobra.Command, module templates.Module) error {
+	name := cmd.Flag("name").Value.String() + ".json"
 
-	js, err := json.Marshal(topic)
+	js, err := json.Marshal(module)
 	if err != nil {
-		return errors.Wrap(err, "encoding topic manifest")
+		return errors.Wrap(err, "encoding module manifest")
 	}
 	return writeStringToFile(ProjectPath(), name, string(js))
 }
 
 func createSubdirectories(cmd *cobra.Command) error {
-	path := filepath.Join(ProjectPath(), "src", cmd.Flag("shortname").Value.String())
+	path := filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String())
 	err := os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making topic src directory")
+		return errors.Wrap(err, "making module src directory")
 	}
-	path = filepath.Join(ProjectPath(), "src", cmd.Flag("shortname").Value.String(), "exercises")
+	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "exercises")
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making topic exercises directory")
+		return errors.Wrap(err, "making module exercises directory")
 	}
-	path = filepath.Join(ProjectPath(), "src", cmd.Flag("shortname").Value.String(), "solutions")
+	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "solutions")
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making topic solutions directory")
+		return errors.Wrap(err, "making module solutions directory")
 	}
-	path = filepath.Join(ProjectPath(), "src", cmd.Flag("shortname").Value.String(), "demos")
+	path = filepath.Join(ProjectPath(), "src", cmd.Flag("name").Value.String(), "demos")
 	err = os.MkdirAll(path, 0755)
 	if err != nil {
-		return errors.Wrap(err, "making topic demos directory")
+		return errors.Wrap(err, "making module demos directory")
 	}
 	for _, dir := range subdirs {
-		path := filepath.Join(ProjectPath(), cmd.Flag("shortname").Value.String(), dir)
+		path := filepath.Join(ProjectPath(), cmd.Flag("name").Value.String(), dir)
 		err := os.MkdirAll(path, 0755)
 		if err != nil {
-			return errors.Wrap(err, "making topic slide directories")
+			return errors.Wrap(err, "making module slide directories")
 		}
 	}
 	return nil

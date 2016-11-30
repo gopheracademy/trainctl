@@ -16,7 +16,7 @@ import (
 // assembleCmd represents the assemble command
 var assembleCmd = &cobra.Command{
 	Use:   "assemble",
-	Short: "Assemble topicss into a course",
+	Short: "Assemble modules into a course",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := checkParams(cmd); err != nil {
@@ -24,21 +24,21 @@ var assembleCmd = &cobra.Command{
 			return
 		}
 		course := templates.NewCourse(cmd)
-		topics, err := cmd.PersistentFlags().GetStringSlice("topics")
+		modules, err := cmd.PersistentFlags().GetStringSlice("modules")
 		if err != nil {
-			fmt.Println("Error parsing topics.")
+			fmt.Println("Error parsing modules.")
 			return
 		}
-		var manifests []*templates.Topic
-		for _, m := range topics {
+		var manifests []*templates.Module
+		for _, m := range modules {
 			man, err := getManifest(m)
 			if err != nil {
-				fmt.Println("Error getting topic manifest.", err)
+				fmt.Println("Error getting module manifest.", err)
 				return
 			}
 			manifests = append(manifests, &man)
 		}
-		course.Topics = manifests
+		course.Modules = manifests
 		err = assembleCourse(cmd, course)
 		if err != nil {
 			fmt.Println("Error assembling course", err)
@@ -60,17 +60,17 @@ func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 			return errors.Wrap(err, "making output directories")
 		}
 	}
-	for i, topic := range course.Topics {
-		topicDir := filepath.Join(ProjectPath(), topic.ShortName)
-		newTopicDir := filepath.Join(course.OutputDirectory, topic.ShortName)
-		err := os.Symlink(topicDir, newTopicDir)
+	for i, module := range course.Modules {
+		moduleDir := filepath.Join(ProjectPath(), module.ShortName)
+		newModuleDir := filepath.Join(course.OutputDirectory, module.ShortName)
+		err := os.Symlink(moduleDir, newModuleDir)
 		if err != nil {
-			return errors.Wrap(err, "symlink topic directory")
+			return errors.Wrap(err, "symlink module directory")
 		}
 
 		// slide
-		slide := filepath.Join(ProjectPath(), topic.ShortName+".slide")
-		newSlide := filepath.Join(course.OutputDirectory, topic.NumberedPath(i+1)+".slide")
+		slide := filepath.Join(ProjectPath(), module.ShortName+".slide")
+		newSlide := filepath.Join(course.OutputDirectory, module.NumberedPath(i+1)+".slide")
 		err = os.Symlink(slide, newSlide)
 		if err != nil {
 			return errors.Wrap(err, "symlink slide")
@@ -78,8 +78,8 @@ func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 		// manifest
 
 		// source code
-		srcDir := filepath.Join(ProjectPath(), "src", topic.ShortName)
-		newsrcDir := filepath.Join(course.OutputDirectory, "src", topic.ShortName)
+		srcDir := filepath.Join(ProjectPath(), "src", module.ShortName)
+		newsrcDir := filepath.Join(course.OutputDirectory, "src", module.ShortName)
 		err = os.Symlink(srcDir, newsrcDir)
 		if err != nil {
 			return errors.Wrap(err, "symlink source directory")
@@ -170,18 +170,18 @@ func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 func init() {
 	RootCmd.AddCommand(assembleCmd)
 
-	assembleCmd.PersistentFlags().StringSlice("topics", []string{}, "List of topics to assemble, comma separated 'topic1,topic2'")
+	assembleCmd.PersistentFlags().StringSlice("modules", []string{}, "List of modules to assemble, comma separated 'module1,module2'")
 	assembleCmd.PersistentFlags().String("course", "", "Course Name e.g: 'Go for the Future'")
 	assembleCmd.PersistentFlags().String("shortname", "", "Course Short Name e.g: 'goforfuture'")
 }
 
 func checkParams(cmd *cobra.Command) error {
-	topics, err := cmd.PersistentFlags().GetStringSlice("topics")
+	modules, err := cmd.PersistentFlags().GetStringSlice("modules")
 	if err != nil {
-		return errors.Wrap(err, "Check parameters: topics")
+		return errors.Wrap(err, "Check parameters: modules")
 	}
-	if len(topics) < 1 {
-		return errors.New("At least one topic is required")
+	if len(modules) < 1 {
+		return errors.New("At least one module is required")
 	}
 
 	course, err := cmd.PersistentFlags().GetString("course")
@@ -199,9 +199,9 @@ func checkParams(cmd *cobra.Command) error {
 	if shortname == "" {
 		return errors.New("Course shortname is required")
 	}
-	newTopicDir := filepath.Join(viper.GetString("coursedir"), shortname)
+	newModuleDir := filepath.Join(viper.GetString("coursedir"), shortname)
 
-	b, err := dirExists(newTopicDir)
+	b, err := dirExists(newModuleDir)
 	if err != nil {
 		return errors.Wrap(err, "Check output directory")
 	}

@@ -16,11 +16,10 @@ const (
 	Expert       = "expert"
 )
 
-type Topic struct {
+type Module struct {
 	ShortName        string `json:"short_name"`
-	Name             string `json:"name"`
 	Description      string `json:"description"`
-	Subject          string `json:"subject"`
+	Topic            string `json:"topic"`
 	Level            Level  `json:"level"`
 	Author           string `json:"author"`
 	AuthorEmail      string `json:"author_email"`
@@ -28,11 +27,10 @@ type Topic struct {
 	SourceRepository string `json:"source_repository"`
 }
 
-func NewTopic(cmd *cobra.Command, description string, importPath string) Topic {
-	return Topic{
-		ShortName:        cmd.Flag("shortname").Value.String(),
-		Name:             cmd.Flag("name").Value.String(),
-		Subject:          cmd.Flag("subject").Value.String(),
+func NewModule(cmd *cobra.Command, description string, importPath string) Module {
+	return Module{
+		ShortName:        cmd.Flag("name").Value.String(),
+		Topic:            cmd.Flag("topic").Value.String(),
 		Level:            Level(cmd.Flag("level").Value.String()),
 		Description:      cmd.Flag("description").Value.String(),
 		Author:           viper.GetString("author"),
@@ -43,7 +41,7 @@ func NewTopic(cmd *cobra.Command, description string, importPath string) Topic {
 
 }
 
-func (m Topic) NumberedPath(i int) string {
+func (m Module) NumberedPath(i int) string {
 	s := strconv.Itoa(i)
 	if len(s) < 2 {
 		return "0" + s + "-" + m.ShortName
@@ -51,16 +49,13 @@ func (m Topic) NumberedPath(i int) string {
 	return s + "-" + m.ShortName
 }
 
-func (m Topic) String() string {
+func (m Module) String() string {
 	b := make([]byte, 0, 40)
 	b = append(b, []byte("Short Name: ")...)
 	b = append(b, m.ShortName...)
 	b = append(b, '\n')
-	b = append(b, []byte("Name: ")...)
-	b = append(b, m.Name...)
-	b = append(b, '\n')
-	b = append(b, []byte("Subject: ")...)
-	b = append(b, m.Subject...)
+	b = append(b, []byte("Topic: ")...)
+	b = append(b, m.Topic...)
 	b = append(b, '\n')
 	b = append(b, []byte("Level: ")...)
 	b = append(b, m.Level...)

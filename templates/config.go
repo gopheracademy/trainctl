@@ -4,13 +4,13 @@ type Conf struct {
 	Twitter   string
 	Author    string
 	Email     string
-	TopicDir  string
+	ModuleDir string
 	CourseDir string
 }
 
 const Config = `twitter: {{.Twitter}}
 author: {{.Author}}
 email: {{.Email}}
-topicdir: {{.TopicDir}}
+moduledir: {{.ModuleDir}}
 coursedir: {{.CourseDir}}
 `
