@@ -14,7 +14,7 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:   "trainctl",
 	Short: "An application to manage training material",
-	Long:  `Long Description`,
+	Long:  `An application to manage training material`,
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	//	Run: func(cmd *cobra.Command, args []string) { },
