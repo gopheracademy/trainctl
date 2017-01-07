@@ -3,10 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"html/template"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 
+	"github.com/gophertrain/trainctl/models"
 	"github.com/gophertrain/trainctl/templates"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -23,13 +25,13 @@ var assembleCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
-		course := templates.NewCourse(cmd)
+		course := models.NewCourse(cmd)
 		modules, err := cmd.PersistentFlags().GetStringSlice("modules")
 		if err != nil {
 			fmt.Println("Error parsing modules.")
 			return
 		}
-		var manifests []*templates.Module
+		var manifests []*models.Module
 		for _, m := range modules {
 			man, err := getManifest(m)
 			if err != nil {
@@ -39,19 +41,82 @@ var assembleCmd = &cobra.Command{
 			manifests = append(manifests, &man)
 		}
 		course.Modules = manifests
+		secret, id, err := getSocket()
+		if err != nil {
+			fmt.Println("Error getting socket information", err)
+			return
+		}
+		course.Secret = secret
+		course.Socket = id
 		err = assembleCourse(cmd, course)
 		if err != nil {
 			fmt.Println("Error assembling course", err)
 			return
 		}
+		err = createIndex(cmd, course)
+		if err != nil {
+			fmt.Println("Error creating slide index", err)
+			return
+		}
 	},
 }
 
-func assembleCourse(cmd *cobra.Command, course templates.Course) error {
-
-	err := os.MkdirAll(course.OutputDirectory, 0755)
+func createIndex(cmd *cobra.Command, course *models.Course) error {
+	name := "index.html"
+	instructorPath := filepath.Join(course.OutputDirectory, "instructor")
+	studentPath := filepath.Join(course.OutputDirectory, "student")
+	err := writeTemplateToFile(instructorPath, name, templates.Reveal, course)
 	if err != nil {
-		return errors.Wrap(err, "create output directory")
+		return err
+	}
+
+	return writeTemplateToFile(studentPath, name, templates.RevealClient, course)
+}
+
+type token struct {
+	Secret   string `json:"secret"`
+	SocketID string `json:"socketId"`
+}
+
+func getSocket() (secret, id string, err error) {
+	var resp *http.Response
+	var tok token
+	resp, err = http.Get("https://socket.gophertrain.com/token")
+	if err != nil {
+		fmt.Println("Error making http call:", err)
+		return secret, id, err
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&tok)
+	secret = tok.Secret
+	id = tok.SocketID
+	return
+
+}
+func assembleCourse(cmd *cobra.Command, course *models.Course) error {
+	instructorPath := filepath.Join(course.OutputDirectory, "instructor")
+	studentPath := filepath.Join(course.OutputDirectory, "student")
+	err := run(exec.Command("git", "clone", "--depth=1", "https://github.com/hakimel/reveal.js", instructorPath))
+	if err != nil {
+		return err
+	}
+
+	err = run(exec.Command("git", "clone", "--depth=1", "https://github.com/hakimel/reveal.js", studentPath))
+	if err != nil {
+		return err
+	}
+
+	instructorGitPath := filepath.Join(course.OutputDirectory, "instructor", ".git")
+	studentGitPath := filepath.Join(course.OutputDirectory, "student", ".git")
+	err = run(exec.Command("rm", "-rf", studentGitPath))
+	if err != nil {
+		return err
+	}
+
+	err = run(exec.Command("rm", "-rf", instructorGitPath))
+	if err != nil {
+		return err
 	}
 	for _, dir := range outputdirs {
 		path := filepath.Join(course.OutputDirectory, dir)
@@ -61,108 +126,106 @@ func assembleCourse(cmd *cobra.Command, course templates.Course) error {
 		}
 	}
 	for i, module := range course.Modules {
-		moduleDir := filepath.Join(ProjectPath(), module.ShortName)
-		newModuleDir := filepath.Join(course.OutputDirectory, module.ShortName)
-		err := os.Symlink(moduleDir, newModuleDir)
+		moduleDir := filepath.Join(ProjectPath(), "../", "modules", module.ShortName)
+		sourceDir := filepath.Join(ProjectPath(), "../", module.ShortName)
+		studentModuleDir := filepath.Join(course.OutputDirectory, "student", module.NumberedPath(i))
+		instructorModuleDir := filepath.Join(course.OutputDirectory, "instructor", module.NumberedPath(i))
+		sourceModuleDir := filepath.Join(course.OutputDirectory, "src", "github.com", "gopheracademy", "training", module.ShortName)
+		err := os.Symlink(moduleDir, studentModuleDir)
 		if err != nil {
-			return errors.Wrap(err, "symlink module directory")
+			return errors.Wrap(err, "symlink student module directory")
 		}
 
-		// slide
-		slide := filepath.Join(ProjectPath(), module.ShortName+".slide")
-		newSlide := filepath.Join(course.OutputDirectory, module.NumberedPath(i+1)+".slide")
-		err = os.Symlink(slide, newSlide)
+		err = os.Symlink(moduleDir, instructorModuleDir)
 		if err != nil {
-			return errors.Wrap(err, "symlink slide")
+			return errors.Wrap(err, "symlink instructor module directory")
 		}
-		// manifest
 
-		// source code
-		srcDir := filepath.Join(ProjectPath(), "src", module.ShortName)
-		newsrcDir := filepath.Join(course.OutputDirectory, "src", module.ShortName)
-		err = os.Symlink(srcDir, newsrcDir)
+		err = os.Symlink(sourceDir, sourceModuleDir)
 		if err != nil {
-			return errors.Wrap(err, "symlink source directory")
+			return errors.Wrap(err, "symlink instructor module directory")
 		}
 
 	}
 	// only once
-	err = writeStringToFile(course.OutputDirectory, "Vagrantfile", templates.Vagrantfile)
-	if err != nil {
-		return errors.Wrap(err, "Create Vagrantfile")
-	}
-	err = writeStringToFile(course.OutputDirectory, "bootstrap-vagrant.sh", templates.Bootstrap)
-	if err != nil {
-		return errors.Wrap(err, "Create bootstrap script")
-	}
-	err = os.Chmod(filepath.Join(course.OutputDirectory, "bootstrap-vagrant.sh"), 0755)
-	if err != nil {
-		return errors.Wrap(err, "make bootstrap script execuatable")
-	}
-
-	err = createCourseManifest(cmd, course)
+	/*
+		err = writeStringToFile(course.OutputDirectory, "Vagrantfile", templates.Vagrantfile)
+		if err != nil {
+			return errors.Wrap(err, "Create Vagrantfile")
+		}
+		err = writeStringToFile(course.OutputDirectory, "bootstrap-vagrant.sh", templates.Bootstrap)
+		if err != nil {
+			return errors.Wrap(err, "Create bootstrap script")
+		}
+		err = os.Chmod(filepath.Join(course.OutputDirectory, "bootstrap-vagrant.sh"), 0755)
+		if err != nil {
+			return errors.Wrap(err, "make bootstrap script execuatable")
+		}
+	*/
+	err = createCourseManifest(cmd, *course)
 	if err != nil {
 		return errors.Wrap(err, "create course manifest")
 	}
+	/*
+		readme := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "readme.tmpl")
+		rt, err := template.ParseFiles(readme)
+		if err != nil {
+			return errors.Wrap(err, "reading readme template")
+		}
 
-	readme := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "readme.tmpl")
-	rt, err := template.ParseFiles(readme)
-	if err != nil {
-		return errors.Wrap(err, "reading readme template")
-	}
+		rm, err := os.Create(filepath.Join(course.OutputDirectory, "README.md"))
+		if err != nil {
+			fmt.Println("create readme: ", err)
+			return err
+		}
+		defer rm.Close()
+		err = rt.Execute(rm, course)
+		if err != nil {
+			fmt.Print("execute course template: ", err)
+			return err
+		}
 
-	rm, err := os.Create(filepath.Join(course.OutputDirectory, "README.md"))
-	if err != nil {
-		fmt.Println("create readme: ", err)
-		return err
-	}
-	defer rm.Close()
-	err = rt.Execute(rm, course)
-	if err != nil {
-		fmt.Print("execute course template: ", err)
-		return err
-	}
+		envT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "environment.tmpl")
+		et, err := template.ParseFiles(envT)
+		if err != nil {
+			return errors.Wrap(err, "reading environment template")
+		}
 
-	envT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "environment.tmpl")
-	et, err := template.ParseFiles(envT)
-	if err != nil {
-		return errors.Wrap(err, "reading environment template")
-	}
+		envf, err := os.Create(filepath.Join(course.OutputDirectory, "environment.sh"))
+		if err != nil {
+			fmt.Println("create environment.sh: ", err)
+			return err
+		}
+		defer envf.Close()
+		err = et.Execute(envf, nil)
+		if err != nil {
+			fmt.Print("execute environment template: ", err)
+			return err
+		}
+		err = os.Chmod(filepath.Join(course.OutputDirectory, "environment.sh"), 0755)
+		if err != nil {
+			fmt.Print("chmod environment template: ", err)
+			return err
+		}
 
-	envf, err := os.Create(filepath.Join(course.OutputDirectory, "environment.sh"))
-	if err != nil {
-		fmt.Println("create environment.sh: ", err)
-		return err
-	}
-	defer envf.Close()
-	err = et.Execute(envf, nil)
-	if err != nil {
-		fmt.Print("execute environment template: ", err)
-		return err
-	}
-	err = os.Chmod(filepath.Join(course.OutputDirectory, "environment.sh"), 0755)
-	if err != nil {
-		fmt.Print("chmod environment template: ", err)
-		return err
-	}
+		enrcT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "envrc.tmpl")
+		envrct, err := template.ParseFiles(enrcT)
+		if err != nil {
+			return errors.Wrap(err, "reading envrc template")
+		}
 
-	enrcT := filepath.Join(getSrcPath(), "github.com", "gophertrain", "trainctl", "templates", "envrc.tmpl")
-	envrct, err := template.ParseFiles(enrcT)
-	if err != nil {
-		return errors.Wrap(err, "reading envrc template")
-	}
-
-	envrcf, err := os.Create(filepath.Join(course.OutputDirectory, ".envrc"))
-	if err != nil {
-		fmt.Println("create .envrc: ", err)
-		return err
-	}
-	defer envrcf.Close()
-	err = envrct.Execute(envrcf, nil)
-	if err != nil {
-		fmt.Print("execute envrc template: ", err)
-		return err
-	}
+		envrcf, err := os.Create(filepath.Join(course.OutputDirectory, ".envrc"))
+		if err != nil {
+			fmt.Println("create .envrc: ", err)
+			return err
+		}
+		defer envrcf.Close()
+		err = envrct.Execute(envrcf, nil)
+		if err != nil {
+			fmt.Print("execute envrc template: ", err)
+			return err
+		}
+	*/
 	return nil
 
 }
@@ -211,7 +274,7 @@ func checkParams(cmd *cobra.Command) error {
 	return nil
 }
 
-func createCourseManifest(cmd *cobra.Command, course templates.Course) error {
+func createCourseManifest(cmd *cobra.Command, course models.Course) error {
 	name := cmd.Flag("shortname").Value.String() + ".json"
 
 	js, err := json.Marshal(course)
@@ -219,4 +282,11 @@ func createCourseManifest(cmd *cobra.Command, course templates.Course) error {
 		return errors.Wrap(err, "encoding course manifest")
 	}
 	return writeStringToFile(viper.GetString("coursedir"), name, string(js))
+}
+
+func run(cmd *exec.Cmd) error {
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
+	cmd.Stdout = os.Stdout
+	return cmd.Run()
 }

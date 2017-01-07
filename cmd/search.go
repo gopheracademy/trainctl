@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gophertrain/trainctl/templates"
+	"github.com/gophertrain/trainctl/models"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -83,8 +83,8 @@ func init() {
 	searchCmd.PersistentFlags().String("description", "", "Module description")
 }
 
-func search(cmd *cobra.Command) ([]templates.Module, error) {
-	var results []templates.Module
+func search(cmd *cobra.Command) ([]models.Module, error) {
+	var results []models.Module
 
 	dir, err := os.Open(ProjectPath())
 	if err != nil {

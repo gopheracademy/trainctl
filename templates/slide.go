@@ -1,9 +1,5 @@
 package templates
 
-const Slide = `{{.Description}}
+const Slide = `##{{.Description}}
 
-{{.Author}}
-{{.AuthorEmail}}
-@{{.AuthorTwitter}}
-
-* {{.Description}}`
+Your Content Goes Here`

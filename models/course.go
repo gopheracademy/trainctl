@@ -1,4 +1,4 @@
-package templates
+package models
 
 import (
 	"path/filepath"
@@ -14,12 +14,16 @@ type Course struct {
 	InstructorEmail   string    `json:"instructor_email"`
 	InstructorTwitter string    `json:"instructor_twitter"`
 	OutputDirectory   string    `json:"output_directory"`
+	Secret            string    `json:"secret"`
+	Socket            string    `json:"socket"`
 	Modules           []*Module `json:"modules"`
 }
 
-func NewCourse(cmd *cobra.Command) Course {
-	return Course{
+func NewCourse(cmd *cobra.Command) *Course {
+	return &Course{
 		Name:              cmd.Flag("course").Value.String(),
+		Secret:            "",
+		Socket:            "",
 		ShortName:         cmd.Flag("shortname").Value.String(),
 		Instructor:        viper.GetString("author"),
 		InstructorEmail:   viper.GetString("email"),

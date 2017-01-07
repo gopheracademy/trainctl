@@ -12,7 +12,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/gophertrain/trainctl/templates"
+	"github.com/gophertrain/trainctl/models"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -33,7 +33,7 @@ var cmdDirs = []string{"cmd", "cmds", "command", "commands"}
 
 var subdirs = []string{"includes", "images"}
 
-var outputdirs = []string{"src"}
+var outputdirs = []string{"src/github.com/gopheracademy/training"}
 
 func init() {
 	funcMap = template.FuncMap{
@@ -279,7 +279,8 @@ func safeWriteToDisk(inpath string, r io.Reader) (err error) {
 		return
 	}
 	if ex {
-		return fmt.Errorf("%v already exists", inpath)
+		os.Rename(inpath, inpath+".old")
+
 	}
 
 	file, err := os.Create(inpath)
@@ -327,9 +328,9 @@ func getModulePath(module string) string {
 
 }
 
-func getManifest(module string) (templates.Module, error) {
+func getManifest(module string) (models.Module, error) {
 
-	var m templates.Module
+	var m models.Module
 	name := module + ".json"
 	path := getModulePath(module)
 

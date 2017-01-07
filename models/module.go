@@ -1,4 +1,4 @@
-package templates
+package models
 
 import (
 	"strconv"
@@ -17,19 +17,20 @@ const (
 )
 
 type Module struct {
-	ShortName        string `json:"short_name"`
-	Description      string `json:"description"`
-	Topic            string `json:"topic"`
-	Level            Level  `json:"level"`
-	Author           string `json:"author"`
-	AuthorEmail      string `json:"author_email"`
-	AuthorTwitter    string `json:"author_twitter"`
-	SourceRepository string `json:"source_repository"`
+	ShortName        string    `json:"short_name"`
+	Description      string    `json:"description"`
+	Topic            string    `json:"topic"`
+	Level            Level     `json:"level"`
+	Author           string    `json:"author"`
+	AuthorEmail      string    `json:"author_email"`
+	AuthorTwitter    string    `json:"author_twitter"`
+	SourceRepository string    `json:"source_repository"`
+	Lessons          []*Lesson `json:"lessons"`
 }
 
 func NewModule(cmd *cobra.Command, description string, importPath string) Module {
 	return Module{
-		ShortName:        cmd.Flag("name").Value.String(),
+		ShortName:        cmd.Flag("module").Value.String(),
 		Topic:            cmd.Flag("topic").Value.String(),
 		Level:            Level(cmd.Flag("level").Value.String()),
 		Description:      cmd.Flag("description").Value.String(),
@@ -42,6 +43,7 @@ func NewModule(cmd *cobra.Command, description string, importPath string) Module
 }
 
 func (m Module) NumberedPath(i int) string {
+	i = i + 1
 	s := strconv.Itoa(i)
 	if len(s) < 2 {
 		return "0" + s + "-" + m.ShortName

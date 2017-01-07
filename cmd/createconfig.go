@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/gophertrain/trainctl/templates"
+	"github.com/gophertrain/trainctl/models"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -53,12 +53,12 @@ func createTheConfig(cmd *cobra.Command) error {
 			return errors.Wrap(err, "removing existing configuration file")
 		}
 	}
-	conf := templates.Conf{
+	conf := models.Conf{
 		Author:    viper.GetString("author"),
 		Twitter:   viper.GetString("twitter"),
 		Email:     viper.GetString("email"),
-		ModuleDir: "/Users/me/github.com/me/modules",
-		CourseDir: "/Users/me/courses",
+		ModuleDir: "/Users/me/src/github.com/me/modules",
+		CourseDir: "/Users/me/src/github.com/me/courses",
 	}
-	return writeTemplateToFile(path, name, templates.Config, conf)
+	return writeTemplateToFile(path, name, models.Config, conf)
 }
